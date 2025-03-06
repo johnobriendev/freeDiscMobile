@@ -1,11 +1,10 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,7 +17,14 @@ import { AuthContext } from './context/AuthContext';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading } = useContext(AuthContext);
+  const { login, isLoading, userToken } = useContext(AuthContext);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (userToken) {
+      router.replace('/(tabs)');
+    }
+  }, [userToken]);
 
   const handleLogin = async () => {
     if (!email || !password) {
