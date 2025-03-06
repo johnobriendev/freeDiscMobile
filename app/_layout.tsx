@@ -1,58 +1,57 @@
-import React from 'react';
-import { Stack } from 'expo-router';
-import { AuthProvider } from './context/AuthContext';
+import React, { useEffect, useContext } from 'react';
+import { Stack, router } from 'expo-router';
+import { AuthProvider, AuthContext } from './context/AuthContext';
 
+// This layout component will wrap the entire app
+function RootLayoutNav() {
+  const { userToken, isLoading } = useContext(AuthContext);
+
+  useEffect(() => {
+    if (!isLoading) {
+      // If no token, redirect to login
+      if (!userToken) {
+        router.replace('/login');
+      } else {
+        router.replace('/(tabs)');
+      }
+    }
+  }, [userToken, isLoading]);
+
+  return (
+    <Stack>
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="register" options={{ title: 'Create Account' }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
+  );
+}
+
+// The root layout must export the AuthProvider to wrap the app
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Stack>
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ title: 'Create Account' }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
+      <RootLayoutNav />
     </AuthProvider>
   );
 }
 
 
 
-
-// import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-// import { useFonts } from 'expo-font';
+// import React from 'react';
 // import { Stack } from 'expo-router';
-// import * as SplashScreen from 'expo-splash-screen';
-// import { StatusBar } from 'expo-status-bar';
-// import { useEffect } from 'react';
-// import 'react-native-reanimated';
-
-// import { useColorScheme } from '@/hooks/useColorScheme';
-
-// // Prevent the splash screen from auto-hiding before asset loading is complete.
-// SplashScreen.preventAutoHideAsync();
+// import { AuthProvider } from './context/AuthContext';
 
 // export default function RootLayout() {
-//   const colorScheme = useColorScheme();
-//   const [loaded] = useFonts({
-//     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-//   });
-
-//   useEffect(() => {
-//     if (loaded) {
-//       SplashScreen.hideAsync();
-//     }
-//   }, [loaded]);
-
-//   if (!loaded) {
-//     return null;
-//   }
-
 //   return (
-//     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+//     <AuthProvider>
 //       <Stack>
+//         <Stack.Screen name="login" options={{ headerShown: false }} />
+//         <Stack.Screen name="register" options={{ title: 'Create Account' }} />
 //         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-//         <Stack.Screen name="+not-found" />
 //       </Stack>
-//       <StatusBar style="auto" />
-//     </ThemeProvider>
+//     </AuthProvider>
 //   );
 // }
+
+
+
