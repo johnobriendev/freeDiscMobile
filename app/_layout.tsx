@@ -1,57 +1,72 @@
-import React, { useEffect, useContext } from 'react';
-import { Stack, router } from 'expo-router';
+
+
+
+
+import React, { useContext, useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 
-// This layout component will wrap the entire app
-function RootLayoutNav() {
-  const { userToken, isLoading } = useContext(AuthContext);
+// Protected routes that require authentication
+const protectedRoutes = [
+  'rounds/new',
+  'rounds/',
+  'stats',
+  'profile',
+  'courses/create'
+];
+
+// Auth guard component
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { userToken, isLoading, isGuest } = useContext(AuthContext);
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      // If no token, redirect to login
-      if (!userToken) {
-        router.replace('/login');
-      } else {
-        router.replace('/(tabs)');
-      }
-    }
-  }, [userToken, isLoading]);
+    // Skip this effect during initial load
+    if (isLoading) return;
+    
+    const inProtectedRoute = protectedRoutes.some(route => 
+      segments.join('/').includes(route)
+    );
 
-  return (
-    <Stack>
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="register" options={{ title: 'Create Account' }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
-  );
+    // If the user is in a protected route and not logged in
+    if (inProtectedRoute && !userToken && !isGuest) {
+      // Redirect to login with return path
+      router.replace({
+        pathname: '/login',
+        params: { returnTo: segments.join('/') }
+      });
+    }
+  }, [userToken, segments, router, isLoading, isGuest]);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#3498db" />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
 }
 
-// The root layout must export the AuthProvider to wrap the app
+// Root layout
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <AuthGuard>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="register" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="courses/[id]" options={{ title: 'Course Details' }} />
+          <Stack.Screen name="courses/create" options={{ title: 'Create Course' }} />
+          <Stack.Screen name="rounds/[id]" options={{ title: 'Round Details' }} />
+          <Stack.Screen name="rounds/new" options={{ title: 'New Round' }} />
+        </Stack>
+      </AuthGuard>
     </AuthProvider>
   );
 }
-
-
-
-// import React from 'react';
-// import { Stack } from 'expo-router';
-// import { AuthProvider } from './context/AuthContext';
-
-// export default function RootLayout() {
-//   return (
-//     <AuthProvider>
-//       <Stack>
-//         <Stack.Screen name="login" options={{ headerShown: false }} />
-//         <Stack.Screen name="register" options={{ title: 'Create Account' }} />
-//         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-//       </Stack>
-//     </AuthProvider>
-//   );
-// }
-
-
-

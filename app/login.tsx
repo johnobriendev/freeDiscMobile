@@ -1,30 +1,33 @@
-import React, { useState, useContext, useEffect } from 'react';
+//app/login.tsx
+
+import React, { useState, useContext } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  ActivityIndicator,
-  Alert
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
-import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
 import { AuthContext } from './context/AuthContext';
 
 export default function LoginScreen() {
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, userToken } = useContext(AuthContext);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (userToken) {
-      router.replace('/(tabs)');
-    }
-  }, [userToken]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Get return path if provided
+  const params = useLocalSearchParams();
+  const returnTo = params.returnTo ? String(params.returnTo) : '/(tabs)';
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -32,42 +35,77 @@ export default function LoginScreen() {
       return;
     }
 
+    setIsLoading(true);
     const result = await login(email, password);
-    if (!result.success) {
-      Alert.alert('Login Failed', result.message);
+    setIsLoading(false);
+
+    if (result.success) {
+      // Redirect to the return path or tabs
+      router.replace(returnTo);
     } else {
-      router.replace('/(tabs)');
+      Alert.alert('Login Failed', result.message);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
+    <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={10}
+      style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.title}>FreeDISC</Text>
-          <Text style={styles.subtitle}>Track your disc golf rounds with ease</Text>
-        </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.inner}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#3498db" />
+          </TouchableOpacity>
 
-        <View style={styles.formContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.headerContainer}>
+            <Text style={styles.headerTitle}>Welcome Back</Text>
+            <Text style={styles.headerSubtitle}>Sign in to continue</Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color="#7f8c8d" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#7f8c8d"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={20} color="#7f8c8d" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor="#7f8c8d"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#7f8c8d"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.forgotPassword}>
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={styles.loginButton}
@@ -75,22 +113,20 @@ export default function LoginScreen() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.loginButtonText}>Sign In</Text>
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.registerLink}
-            onPress={() => router.push('/register')}
-          >
-            <Text style={styles.registerLinkText}>
-              Don't have an account? Sign up
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.registerContainer}>
+            <Text style={styles.registerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => router.push('/register')}>
+              <Text style={styles.registerLink}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </ScrollView>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
@@ -100,53 +136,88 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
+  inner: {
+    flex: 1,
     padding: 20,
+    paddingTop: 50,
   },
-  logoContainer: {
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerContainer: {
     marginBottom: 40,
   },
-  title: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 10,
     color: '#2c3e50',
+    marginBottom: 10,
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 16,
     color: '#7f8c8d',
-    textAlign: 'center',
   },
-  formContainer: {
-    width: '100%',
+  inputContainer: {
+    marginBottom: 30,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    backgroundColor: '#f9f9f9',
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    backgroundColor: '#f5f6fa',
-    borderRadius: 5,
-    padding: 15,
-    marginBottom: 15,
+    flex: 1,
+    height: 50,
     fontSize: 16,
+    color: '#2c3e50',
+  },
+  passwordToggle: {
+    padding: 10,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+  },
+  forgotPasswordText: {
+    color: '#3498db',
+    fontSize: 14,
   },
   loginButton: {
     backgroundColor: '#3498db',
-    borderRadius: 5,
-    padding: 15,
+    borderRadius: 8,
+    height: 50,
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
   loginButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  registerText: {
+    color: '#7f8c8d',
+    fontSize: 14,
   },
   registerLink: {
-    alignItems: 'center',
-  },
-  registerLinkText: {
     color: '#3498db',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

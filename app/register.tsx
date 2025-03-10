@@ -1,3 +1,4 @@
+// app/register.tsx
 import React, { useState, useContext, useEffect } from 'react';
 import {
   StyleSheet,
@@ -9,13 +10,16 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert
+  Alert,
+  StatusBar
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Link } from 'expo-router';
 import { AuthContext } from './context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
-  const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,7 +33,7 @@ export default function RegisterScreen() {
   }, [userToken]);
 
   const validateForm = () => {
-    if (!username || !email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return false;
     }
@@ -59,7 +63,8 @@ export default function RegisterScreen() {
     if (!validateForm()) return;
 
     const userData = {
-      username,
+      firstName,
+      lastName,
       email,
       password
     };
@@ -78,20 +83,36 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={10}
     >
+      <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#3498db" />
+        </TouchableOpacity>
+        
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join FreeDISC to track your disc golf performance</Text>
         </View>
 
         <View style={styles.formContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-          />
+          <View style={styles.nameRow}>
+            <TextInput
+              style={[styles.input, styles.halfInput]}
+              placeholder="First Name"
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+            <TextInput
+              style={[styles.input, styles.halfInput]}
+              placeholder="Last Name"
+              value={lastName}
+              onChangeText={setLastName}
+            />
+          </View>
+          
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -127,14 +148,23 @@ export default function RegisterScreen() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.loginLink}
-            onPress={() => router.push('/login')}
-          >
-            <Text style={styles.loginLinkText}>
-              Already have an account? Sign in
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.linksContainer}>
+            <Link href="/login" asChild>
+              <TouchableOpacity>
+                <Text style={styles.loginLinkText}>
+                  Already have an account? Sign in
+                </Text>
+              </TouchableOpacity>
+            </Link>
+            
+            <Link href="/(tabs)/courses" asChild>
+              <TouchableOpacity style={styles.guestLink}>
+                <Text style={styles.guestLinkText}>
+                  Continue as guest
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -150,9 +180,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
   },
+  backButton: {
+    marginTop: 20,
+    marginBottom: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerContainer: {
     alignItems: 'center',
-    marginVertical: 30,
+    marginBottom: 30,
   },
   title: {
     fontSize: 24,
@@ -167,6 +205,13 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '100%',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  halfInput: {
+    width: '48%',
   },
   input: {
     backgroundColor: '#f5f6fa',
@@ -187,11 +232,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  loginLink: {
+  linksContainer: {
     alignItems: 'center',
   },
   loginLinkText: {
     color: '#3498db',
+    fontSize: 16,
+    marginBottom: 15,
+  },
+  guestLink: {
+    marginTop: 10,
+  },
+  guestLinkText: {
+    color: '#7f8c8d',
     fontSize: 16,
   },
 });
