@@ -1,6 +1,6 @@
 // app/index.tsx
 import React, { useContext, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, StatusBar } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, StatusBar } from 'react-native';
 import { router } from 'expo-router';
 import { AuthContext } from './context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,12 +8,25 @@ import { Ionicons } from '@expo/vector-icons';
 export default function LandingScreen() {
   const { userToken, isGuest, continueAsGuest } = useContext(AuthContext);
   
-  // If user is already logged in or browsing as guest, redirect to tabs
+  // Use a setTimeout to avoid navigation during the initial render
   useEffect(() => {
+    // Only redirect if already authenticated
     if (userToken || isGuest) {
-      router.replace('/(tabs)');
+      const timer = setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 0);
+      
+      return () => clearTimeout(timer);
     }
   }, [userToken, isGuest]);
+
+  const handleGuestBrowsing = () => {
+    continueAsGuest();
+    // Use a small delay to ensure context is updated before navigation
+    setTimeout(() => {
+      router.replace('/(tabs)');
+    }, 10);
+  };
 
   return (
     <View style={styles.container}>
@@ -53,10 +66,7 @@ export default function LandingScreen() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
           style={styles.mainButton}
-          onPress={() => {
-            continueAsGuest();
-            router.replace('/(tabs)');
-          }}
+          onPress={handleGuestBrowsing}
         >
           <Text style={styles.mainButtonText}>Browse as Guest</Text>
         </TouchableOpacity>

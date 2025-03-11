@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import axios from 'axios';
 
 // Define your API base URL - update this with your actual backend URL
-const API_URL = 'http://your-backend-url/api'; // Replace with your actual URL
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 // Create an axios instance
 const api = axios.create({
