@@ -1,3 +1,5 @@
+//app/courses/[id].tsx
+
 import React, { useEffect, useState, useContext } from 'react';
 import {
   StyleSheet,
@@ -27,6 +29,12 @@ export default function CourseDetailScreen() {
     try {
       setLoading(true);
       const response = await api.get(`/courses/${id}`);
+      
+      // Make sure holes is an array
+      if (response.data && response.data.holes && !Array.isArray(response.data.holes)) {
+        response.data.holes = [];
+      }
+      
       setCourse(response.data);
     } catch (error) {
       console.error('Error fetching course details:', error);
@@ -75,13 +83,17 @@ export default function CourseDetailScreen() {
   }
 
   // Calculate total par
-  const totalPar = course.holes.reduce((sum, hole) => sum + hole.par, 0);
+  const totalPar = Array.isArray(course.holes) 
+    ? course.holes.reduce((sum, hole) => sum + (hole.par || 0), 0)
+    : 0;
   
   // Calculate total length if available
   let totalLength = 0;
-  const holesWithLength = course.holes.filter(hole => hole.lengthFeet !== null);
-  if (holesWithLength.length > 0) {
-    totalLength = holesWithLength.reduce((sum, hole) => sum + (hole.lengthFeet || 0), 0);
+  if (Array.isArray(course.holes)) {
+    const holesWithLength = course.holes.filter(hole => hole.lengthFeet !== null && hole.lengthFeet !== undefined);
+    if (holesWithLength.length > 0) {
+      totalLength = holesWithLength.reduce((sum, hole) => sum + (hole.lengthFeet || 0), 0);
+    }
   }
 
   return (
@@ -96,7 +108,9 @@ export default function CourseDetailScreen() {
           <View style={styles.infoItem}>
             <Ionicons name="flag-outline" size={20} color="#3498db" />
             <Text style={styles.infoLabel}>Holes</Text>
-            <Text style={styles.infoValue}>{course.holes.length}</Text>
+            <Text style={styles.infoValue}>
+              {Array.isArray(course.holes) ? course.holes.length : 0}
+            </Text>
           </View>
           <View style={styles.infoItem}>
             <Ionicons name="golf-outline" size={20} color="#3498db" />
@@ -122,8 +136,8 @@ export default function CourseDetailScreen() {
 
       <View style={styles.holeListContainer}>
         <Text style={styles.sectionTitle}>Hole Details</Text>
-        {course.holes.map((hole) => (
-          <View key={hole.id} style={styles.holeItem}>
+        {Array.isArray(course.holes) && course.holes.map((hole) => (
+          <View key={hole.id || hole.holeNumber} style={styles.holeItem}>
             <View style={styles.holeNumber}>
               <Text style={styles.holeNumberText}>{hole.holeNumber}</Text>
             </View>

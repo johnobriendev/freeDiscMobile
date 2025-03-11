@@ -1,3 +1,4 @@
+//app/rounds/new.tsx
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
@@ -126,7 +127,7 @@ export default function NewRoundScreen() {
                 {courses.map((course) => (
                   <Picker.Item
                     key={course.id}
-                    label={`${course.name} (${course.holes} holes)`}
+                    label={`${course.name} (${course.holeCount || (Array.isArray(course.holes) ? course.holes.length : 0)} holes)`}
                     value={course.id}
                   />
                 ))}

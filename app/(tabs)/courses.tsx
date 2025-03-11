@@ -1,3 +1,4 @@
+//app/(tabs)/courses.tsx
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
@@ -41,26 +42,60 @@ export default function CoursesScreen() {
     fetchCourses();
   }, []);
 
-  const renderCourseItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.courseItem}
-      onPress={() => router.push(`/courses/${item.id}`)}
-    >
-      <View style={styles.courseInfo}>
-        <Text style={styles.courseName}>{item.name}</Text>
-        <Text style={styles.courseLocation}>{item.location}</Text>
-        <View style={styles.courseDetails}>
-          <Text style={styles.courseDetail}>
-            <Ionicons name="flag-outline" size={14} /> {item.holes} holes
-          </Text>
-          <Text style={styles.courseDetail}>
-            <Ionicons name="golf-outline" size={14} /> Par {item.par}
-          </Text>
+
+  const renderCourseItem = ({ item }) => {
+    // Calculate hole count - either use the length of the holes array or the holes property
+    const holeCount = Array.isArray(item.holes) 
+      ? item.holes.length 
+      : (typeof item.holes === 'number' ? item.holes : 0);
+    
+    // Calculate par total - either sum the hole pars or use the par property
+    const parTotal = Array.isArray(item.holes) 
+      ? item.holes.reduce((sum, hole) => sum + (typeof hole.par === 'number' ? hole.par : 0), 0)
+      : (typeof item.par === 'number' ? item.par : 0);
+  
+    return (
+      <TouchableOpacity
+        style={styles.courseItem}
+        onPress={() => router.push(`/courses/${item.id}`)}
+      >
+        <View style={styles.courseInfo}>
+          <Text style={styles.courseName}>{item.name}</Text>
+          <Text style={styles.courseLocation}>{item.location}</Text>
+          <View style={styles.courseDetails}>
+            <Text style={styles.courseDetail}>
+              <Ionicons name="flag-outline" size={14} /> {holeCount} holes
+            </Text>
+            <Text style={styles.courseDetail}>
+              <Ionicons name="golf-outline" size={14} /> Par {parTotal}
+            </Text>
+          </View>
         </View>
-      </View>
-      <Ionicons name="chevron-forward" size={24} color="#bdc3c7" />
-    </TouchableOpacity>
-  );
+        <Ionicons name="chevron-forward" size={24} color="#bdc3c7" />
+      </TouchableOpacity>
+    );
+  };
+
+  // const renderCourseItem = ({ item }) => (
+  //   <TouchableOpacity
+  //     style={styles.courseItem}
+  //     onPress={() => router.push(`/courses/${item.id}`)}
+  //   >
+  //     <View style={styles.courseInfo}>
+  //       <Text style={styles.courseName}>{item.name}</Text>
+  //       <Text style={styles.courseLocation}>{item.location}</Text>
+  //       <View style={styles.courseDetails}>
+  //         <Text style={styles.courseDetail}>
+  //           <Ionicons name="flag-outline" size={14} /> {item.holes} holes
+  //         </Text>
+  //         <Text style={styles.courseDetail}>
+  //           <Ionicons name="golf-outline" size={14} /> Par {item.par}
+  //         </Text>
+  //       </View>
+  //     </View>
+  //     <Ionicons name="chevron-forward" size={24} color="#bdc3c7" />
+  //   </TouchableOpacity>
+  // );
 
   return (
     <View style={styles.container}>
