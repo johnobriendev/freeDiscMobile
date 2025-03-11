@@ -1,5 +1,5 @@
 //app/rounds/new.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,15 +13,21 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { api } from '../context/AuthContext';
-import { Picker } from '@react-native-picker/picker';
+import { AuthContext } from '../context/AuthContext';
+
 
 export default function NewRoundScreen() {
   const params = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
+  const [filteredCourses, setFilteredCourses] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [playerNames, setPlayerNames] = useState(['']); // Start with one empty player
   const [isCreating, setIsCreating] = useState(false);
+
+  const { user } = useContext(AuthContext);
+
 
   // If a courseId was passed in params, use that as the initial selected course
   useEffect(() => {
@@ -37,6 +43,7 @@ export default function NewRoundScreen() {
         setLoading(true);
         const response = await api.get('/courses');
         setCourses(response.data);
+        setFilteredCourses(response.data);
         
         // If no course is selected yet and we have courses, select the first one
         if (!selectedCourse && response.data.length > 0) {
@@ -52,6 +59,29 @@ export default function NewRoundScreen() {
 
     fetchCourses();
   }, []);
+
+  // Filter courses based on search query
+  useEffect(() => {
+    if (courses.length > 0) {
+      if (searchQuery.trim() === '') {
+        setFilteredCourses(courses);
+      } else {
+        const filtered = courses.filter(course => 
+          course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (course.location && course.location.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+        setFilteredCourses(filtered);
+      }
+    }
+  }, [courses, searchQuery]);
+
+  useEffect(() => {
+    if (user && user.firstName) {
+      const displayName = `${user.firstName}${user.lastName ? ' ' + user.lastName : ''}`;
+      setPlayerNames([displayName]); // Pre-fill with user's name
+    }
+  }, [user]);
+  
 
   const addPlayer = () => {
     setPlayerNames([...playerNames, '']);
@@ -76,22 +106,17 @@ export default function NewRoundScreen() {
       Alert.alert('Error', 'Please select a course');
       return;
     }
-
-    // Filter out empty player names
-    const filteredPlayerNames = playerNames.filter(name => name.trim() !== '');
+  
+    // Filter out empty player names from additional players (excluding the first one which is the user)
+    const additionalPlayers = playerNames.slice(1).filter(name => name.trim() !== '');
     
-    if (filteredPlayerNames.length === 0) {
-      Alert.alert('Error', 'Please add at least one player');
-      return;
-    }
-
     try {
       setIsCreating(true);
       
       const response = await api.post('/rounds', {
         courseId: selectedCourse,
         date: new Date().toISOString(),
-        playerNames: filteredPlayerNames.slice(1), // Remove the first player (which is the current user)
+        playerNames: additionalPlayers, // Only send additional players
       });
       
       // Navigate to the round detail page to start scoring
@@ -117,25 +142,61 @@ export default function NewRoundScreen() {
       <ScrollView style={styles.scrollView}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Course</Text>
-          <View style={styles.pickerContainer}>
-            {courses.length > 0 ? (
-              <Picker
-                selectedValue={selectedCourse}
-                style={styles.picker}
-                onValueChange={(itemValue) => setSelectedCourse(itemValue)}
+          
+          <TextInput
+            style={[styles.input, styles.searchInput]}
+            placeholder="Search courses by name or location..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#7f8c8d"
+            clearButtonMode="while-editing"
+          />
+          
+          {filteredCourses.length > 0 ? (
+            <View style={styles.courseListContainer}>
+              <ScrollView 
+                style={styles.courseList}
+                nestedScrollEnabled={true}
               >
-                {courses.map((course) => (
-                  <Picker.Item
+                {filteredCourses.map((course) => (
+                  <TouchableOpacity
                     key={course.id}
-                    label={`${course.name} (${course.holeCount || (Array.isArray(course.holes) ? course.holes.length : 0)} holes)`}
-                    value={course.id}
-                  />
+                    style={[
+                      styles.courseCard,
+                      selectedCourse === course.id && styles.selectedCourseCard
+                    ]}
+                    onPress={() => setSelectedCourse(course.id)}
+                  >
+                    <View style={styles.courseCardContent}>
+                      <Text style={styles.courseName}>{course.name}</Text>
+                      <Text style={styles.courseDetails}>
+                        {course.location && `${course.location} • `}
+                        {course.holeCount || (Array.isArray(course.holes) ? course.holes.length : 0)} holes
+                      </Text>
+                    </View>
+                    {selectedCourse === course.id && (
+                      <Ionicons name="checkmark-circle" size={24} color="#2ecc71" />
+                    )}
+                  </TouchableOpacity>
                 ))}
-              </Picker>
-            ) : (
-              <Text style={styles.noCourses}>No courses available. Please create a course first.</Text>
-            )}
-          </View>
+              </ScrollView>
+            </View>
+          ) : (
+            <View style={styles.noCoursesContainer}>
+              <Ionicons name="search" size={40} color="#bdc3c7" />
+              <Text style={styles.noCourses}>
+                {courses.length > 0 ? 'No courses match your search.' : 'No courses available. Please create a course first.'}
+              </Text>
+              {courses.length === 0 && (
+                <TouchableOpacity 
+                  style={styles.createCourseButton}
+                  onPress={() => router.push('/courses/create')}
+                >
+                  <Text style={styles.createCourseButtonText}>Create Course</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -225,6 +286,72 @@ const styles = StyleSheet.create({
     color: '#7f8c8d',
     marginBottom: 15,
   },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: '#fafafa',
+  },
+  searchInput: {
+    marginBottom: 10,
+  },
+  courseListContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+  },
+  courseList: {
+    maxHeight: 250,
+  },
+  courseCard: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectedCourseCard: {
+    backgroundColor: '#e1f5fe',
+  },
+  courseCardContent: {
+    flex: 1,
+  },
+  courseName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 4,
+  },
+  courseDetails: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
+  noCoursesContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  noCourses: {
+    fontSize: 16,
+    color: '#7f8c8d',
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  createCourseButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  createCourseButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   pickerContainer: {
     borderColor: '#ddd',
     borderWidth: 1,
@@ -233,11 +360,6 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
-  },
-  noCourses: {
-    padding: 15,
-    color: '#7f8c8d',
-    textAlign: 'center',
   },
   playerRow: {
     flexDirection: 'row',
