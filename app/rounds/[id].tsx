@@ -61,11 +61,17 @@ export default function RoundDetailScreen() {
 
   const updateScore = async (playerId, holeId, currentStrokes, delta) => {
     const newStrokes = Math.max(0, currentStrokes + delta);
+
+    const endpoint = `/rounds/${id}/players/${playerId}/holes/${holeId}/score`;
+    
     
     try {
-      await api.put(`/rounds/${id}/players/${playerId}/holes/${holeId}`, {
+      const response = await api.patch(endpoint, {
         strokes: newStrokes
       });
+      
+      // Log successful response
+      console.log('Score update response:', response.data);
       
       // Update local state to avoid needing to refetch the entire round
       setRound(prevRound => {
@@ -86,6 +92,8 @@ export default function RoundDetailScreen() {
       });
     } catch (error) {
       console.error('Error updating score:', error);
+      // Added more detailed error logging
+      console.error('Error details:', error.response?.data || error.message);
       Alert.alert('Error', 'Failed to update score. Please try again.');
     }
   };
@@ -112,6 +120,8 @@ export default function RoundDetailScreen() {
       Alert.alert('Error', 'Failed to complete round. Please try again.');
     }
   };
+
+  
 
   const nextHole = () => {
     if (round?.course?.holes && currentHole < round.course.holes.length) {
@@ -151,6 +161,13 @@ export default function RoundDetailScreen() {
       hole => hole.holeNumber === currentHole
     );
   };
+
+  const calculateCoursePar = () => {
+    if (!round?.course?.holes || round.course.holes.length === 0) return 0;
+    
+    return round.course.holes.reduce((sum, hole) => sum + (hole.par || 0), 0);
+  };
+
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -258,8 +275,17 @@ export default function RoundDetailScreen() {
                   <View style={styles.scoreControls}>
                     <TouchableOpacity 
                       style={[styles.scoreButton, styles.decrementButton]}
-                      onPress={() => updateScore(player.id, currentHoleObj.id, holeScore ? holeScore.strokes : 0, -1)}
-                      disabled={!holeScore || holeScore.strokes === 0}
+                      onPress={() => {
+                        if (holeScore && currentHoleObj) {
+                          console.log('Decrementing score for:', {
+                            player: player.name,
+                            hole: currentHole,
+                            currentStrokes: holeScore ? holeScore.strokes : 0
+                          });
+                          updateScore(player.id, currentHoleObj.id, holeScore ? holeScore.strokes : 0, -1);
+                        }
+                      }}
+                      disabled={!holeScore || !currentHoleObj || holeScore.strokes === 0}
                     >
                       <Ionicons name="remove" size={20} color="white" />
                     </TouchableOpacity>
@@ -270,7 +296,17 @@ export default function RoundDetailScreen() {
                     
                     <TouchableOpacity 
                       style={[styles.scoreButton, styles.incrementButton]}
-                      onPress={() => updateScore(player.id, currentHoleObj.id, holeScore ? holeScore.strokes : 0, 1)}
+                      onPress={() => {
+                        if (holeScore && currentHoleObj) {
+                          console.log('Incrementing score for:', {
+                            player: player.name,
+                            hole: currentHole,
+                            currentStrokes: holeScore ? holeScore.strokes : 0
+                          });
+                          updateScore(player.id, currentHoleObj.id, holeScore ? holeScore.strokes : 0, 1);
+                        }
+                      }}
+                      disabled={!holeScore || !currentHoleObj}
                     >
                       <Ionicons name="add" size={20} color="white" />
                     </TouchableOpacity>
@@ -357,12 +393,34 @@ export default function RoundDetailScreen() {
       {/* Action Button */}
       {isInProgress && (
         <View style={styles.actionButtonContainer}>
-          <TouchableOpacity 
-            style={styles.finishButton}
-            onPress={finishRound}
-          >
-            <Text style={styles.finishButtonText}>Finish Round</Text>
-          </TouchableOpacity>
+          {currentHole === round.course.holes.length ? (
+            // Only show "Finish Round" on the last hole
+            <TouchableOpacity 
+              style={styles.finishButton}
+              onPress={() => {
+                // Add confirmation dialog to prevent accidental completion
+                Alert.alert(
+                  'Finish Round',
+                  'Are you sure you want to complete this round? This action cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Finish Round', onPress: finishRound }
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.finishButtonText}>Finish Round</Text>
+            </TouchableOpacity>
+          ) : (
+            // Show "Next Hole" button for all other holes
+            <TouchableOpacity 
+              style={styles.nextHoleButton}
+              onPress={nextHole}
+            >
+              <Text style={styles.nextHoleButtonText}>Next Hole</Text>
+              <Ionicons name="arrow-forward" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -630,5 +688,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  nextHoleButton: {
+    backgroundColor: '#3498db',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  nextHoleButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
   },
 });
