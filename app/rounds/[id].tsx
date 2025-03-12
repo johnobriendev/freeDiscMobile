@@ -100,7 +100,7 @@ export default function RoundDetailScreen() {
 
   const finishRound = async () => {
     try {
-      await api.put(`/rounds/${id}`, {
+      await api.patch(`/rounds/${id}/status`, {
         status: 'COMPLETED'
       });
       

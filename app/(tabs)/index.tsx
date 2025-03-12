@@ -1,3 +1,4 @@
+//app/(tabs)/index.tsx
 import React, { useContext } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
