@@ -76,26 +76,7 @@ export default function CoursesScreen() {
     );
   };
 
-  // const renderCourseItem = ({ item }) => (
-  //   <TouchableOpacity
-  //     style={styles.courseItem}
-  //     onPress={() => router.push(`/courses/${item.id}`)}
-  //   >
-  //     <View style={styles.courseInfo}>
-  //       <Text style={styles.courseName}>{item.name}</Text>
-  //       <Text style={styles.courseLocation}>{item.location}</Text>
-  //       <View style={styles.courseDetails}>
-  //         <Text style={styles.courseDetail}>
-  //           <Ionicons name="flag-outline" size={14} /> {item.holes} holes
-  //         </Text>
-  //         <Text style={styles.courseDetail}>
-  //           <Ionicons name="golf-outline" size={14} /> Par {item.par}
-  //         </Text>
-  //       </View>
-  //     </View>
-  //     <Ionicons name="chevron-forward" size={24} color="#bdc3c7" />
-  //   </TouchableOpacity>
-  // );
+
 
   return (
     <View style={styles.container}>

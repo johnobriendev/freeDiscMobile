@@ -223,7 +223,7 @@ export default function RoundDetailScreen() {
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Par</Text>
-              <Text style={styles.infoValue}>{round.course.par}</Text>
+              <Text style={styles.infoValue}>{calculateCoursePar()}</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Status</Text>
